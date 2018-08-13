@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include<stdlib.h>
+#include <stdio.h>
+#include<stdlib.h>
 int main()
 {
     int* ptr = NULL;
@@ -12,6 +14,13 @@ int main()
             *(ptr + i) = 0;
         }
     }
+    /*ptr = calloc(10, sizeof(int));
+     *  if (ptr != NULL)
+     *  {
+     *
+     *  }
+     *
+     * */
     free(ptr);
     ptr = NULL;
     return 0;

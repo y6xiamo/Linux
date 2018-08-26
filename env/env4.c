@@ -7,6 +7,7 @@ int main()
     if(env)
     {
         printf("%s\n",env);
-    }
-    return 0;
+    
+     }
+
 }

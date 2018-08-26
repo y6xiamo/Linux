@@ -30,7 +30,7 @@ int main()
     if((len = read(fds[0],buf,100)) == -1)
     {
         perror("read");
- //       break;
+
     }
 
     //往stdout上写

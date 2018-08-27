@@ -1,6 +1,10 @@
-#pragma once
 #include<iostream>
+#include<stdio.h>
+#include<stdlib.h>
 #include<string>
+#include<algorithm>
+#include<assert.h>
+#include"huffman.hpp"
 using namespace std;
 struct CharInfo
 {
@@ -49,22 +53,22 @@ public:
     }
 
 
-    void GetHuffManCdoe(HuffmanTreeNode<CharInfo> pRoot)
+    void GetHuffManCode(HuffmanTreeNode<CharInfo>* pRoot)
     {
         if(pRoot)
         {
-            GetHuffManCdoe(pRoot->left);
-            GetHuffManCdoe(pRoot->right);
+            GetHuffManCode(pRoot->_pLeft);
+            GetHuffManCode(pRoot->_pRight);
 
-            if(pRoot->left == NULL && pRoot->right == NULL)
+            if(pRoot->_pLeft == NULL && pRoot->_pRight == NULL)
             {
                 HuffmanTreeNode<CharInfo>* pCur = pRoot;
                 HuffmanTreeNode<CharInfo>* pParent = pCur->_pParent;
 
-                string& strCode = _charInfo[pCur->_weight._ch]._strCode;
+                string& strCode = _charInfo[(unsigned char)pCur->_weight._ch]._strCode;
                 while(1)
                 {
-                    if(pCur == pParent->left)
+                    if(pCur == pParent->_pLeft)
                     {
                         strCode += '0';
                     }
@@ -72,13 +76,10 @@ public:
                     {
                         strCode += '1';
                     }
-
                     pCur = pParent;
                     pParent = pCur->_pParent;
                 }
                 reverse(strCode.begin(),strCode.end());
-
-
             }
         }
 
@@ -95,7 +96,7 @@ public:
         }
 
         char* pReadBuff = new char[1024];
-        while(1)
+        while(true)
         {
             size_t readSize = fread(pReadBuff,1,1024,fIn);
             if(readSize == 0)
@@ -105,9 +106,9 @@ public:
 
             for(size_t i = 0;i < readSize;++i)
             {
-                _charInfo[pReadBuff[i]]._count++;
+                _charInfo[(unsigned char)pReadBuff[i]]._count++;
             }
-
+        }
             //2.以每个字符出现的次数为权值创建huffman树
             HuffmanTree<CharInfo> ht(_charInfo,256,CharInfo(0));
 
@@ -116,17 +117,18 @@ public:
 
 
             //写压缩文件的头部信息
-            string filrPostFix = GetFilePostFix(filePath);
+            string filePostFix = GetFilePostFix(filePath);
             string strCodeInfo;
             char strCount[32] = {0};
-            size_t LineCount;
+            size_t LineCount = 0;;
             for(size_t i = 0;i < 256;++i)
             {
                 if(_charInfo[i]._count != 0)
                 {
                     strCodeInfo += _charInfo[i]._ch;
                     strCodeInfo += ',';
-                    itoa(_charInfo[i]._count,strCount,10);
+                  //  itoa(_charInfo[i]._count,strCount,10);
+                    sprintf(strCount,"%d",(int)_charInfo[i]._count);
                     strCodeInfo += strCount;
                     strCodeInfo += '\n';
                     LineCount++;
@@ -136,7 +138,8 @@ public:
             string strHeadInfo;
             strHeadInfo += filePostFix;
             strHeadInfo += '\n';
-            itoa(LineCount,strCount,10);
+            //itoa(LineCount,strCount,10);
+            sprintf(strCount,"%d",(int)LineCount);
             strCodeInfo += strCount;
             strHeadInfo += '\n';
             strHeadInfo += strCodeInfo;
@@ -163,7 +166,7 @@ public:
               
                 for(size_t i = 0;i < readSize;++i)
                 {
-                    string strCode = _charInfo[pReadBuff[i]]._strCode;
+                    string strCode = _charInfo[(unsigned char)pReadBuff[i]]._strCode;
                     for(size_t j = 0;j < strCode.size();++j)
                     {
                         c <<= 1;
@@ -184,12 +187,10 @@ public:
                         }
                     }
                 }
-            }
-
-        }
+            } 
         if(pos < 8)
         {
-            pWriteBuff[writeSize++] = (c << 8-pos);
+            pWriteBuff[writeSize++] = (c << (8-pos));
         }
 
         fwrite(pWriteBuff,1,writeSize,fOut);
@@ -207,11 +208,13 @@ public:
         return FilePath.substr(pos);
     }
 
-    string FilePath(string FilePath)
+    string GetFilePath(string FilePath)
     {
-        szie_t pos = FilePath.find_last_of('.');
+        size_t pos = FilePath.find_last_of('.');
         return FilePath.substr(0,pos);
     }
+
+
     void UnCompressFile(const string filePath)
     {
         FILE* fIn = fopen(filePath.c_str(),"r");
@@ -223,23 +226,25 @@ public:
         string strLineCount;
         ReadLine(fIn,strLineCount);
 
+        string strCodeInfo;
         //这块也有坑
         size_t lineCount = atoi(strLineCount.c_str());
         for(size_t i = 0;i < lineCount;++i)
         {
             strCodeInfo = "";
             ReadLine(fIn,strCodeInfo);
-            _charInfo[strCodeInfo[0]]._count = atoi(strCodeInfo.c_str() + 2);
+            _charInfo[(unsigned char)strCodeInfo[0]]._count = atoi(strCodeInfo.c_str() + 2);
         }
 
         //构建哈夫曼树
-        HuffmanTree<CharInfo> ht(CharInfo,256,CharInfo(0));
+        HuffmanTree<CharInfo> ht(_charInfo,256,CharInfo(0));
 
-        char* pReadBuff = new char[1024];
         HuffmanTreeNode<CharInfo>* pCur = ht.GetRoot();
 
-        string compressFilePath = GetFilePath(filrPath);
-        FILE* fOut = fopen("","w");
+        string compressFilePath = GetFilePath(filePath);
+
+        compressFilePath += strFilePostFIx;
+        FILE* fOut = fopen(compressFilePath.c_str(),"w");
         assert(fOut);
 
         //解压缩
@@ -247,7 +252,6 @@ public:
         char* pWriteBuff = new char[1024];
         size_t writeSize = 0;
         size_t pos = 8;
-
         size_t fileSize = pCur->_weight._count;
         while(true)
         {
@@ -264,11 +268,11 @@ public:
                 {
                     if(pReadBuff[i] & (1 << pos))
                     {
-                        pCur = pCur->right;
+                        pCur = pCur->_pRight;
                     }
                     else
                     {
-                        pCur = pCur->left;
+                        pCur = pCur->_pLeft;
                     }
                     if(pCur->_pLeft == NULL && pCur->_pRight == NULL)
                     {

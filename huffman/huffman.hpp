@@ -1,6 +1,4 @@
-#pragma once
-#include"heap.h"
-
+#include"Heap.h"
 template<class W>
 struct HuffmanTreeNode
 {
@@ -9,9 +7,7 @@ struct HuffmanTreeNode
         ,_pRight(NULL)
         ,_pParent(NULL)
         ,_weight(weight)
-    {
-
-    }
+    {}
 
     HuffmanTreeNode<W>* _pLeft;
     HuffmanTreeNode<W>* _pRight;
@@ -22,7 +18,7 @@ struct HuffmanTreeNode
 template<class W>
 class HuffmanTree
 {
-    typedef HuffmanTreeNode<W>* pNode;    
+    typedef HuffmanTreeNode<W> pNode;    
 
 public:
     //构造函数
@@ -35,37 +31,48 @@ public:
         _CreateHuffmanTree(array,size,invalid);
     }
 
+    void _Destroy(pNode* pRoot)
+    {
+        if(pRoot == NULL)
+        {
+            return;
+        }
+        _Destroy(pRoot->_pLeft);
+        _Destroy(pRoot->_pRight);
+        delete pRoot;
+    }
+
     //析构函数
     ~HuffmanTree()
     {
         _Destroy(_pRoot);
+        _pRoot == NULL;
     }
 
-    pNode& GetRoot()
+    pNode* GetRoot()
     {
-        return *_pRoot;
+        return _pRoot;
     }
 
-private:
 
     void _CreateHuffmanTree(W* array,size_t  size,const W& invalid)
     {
         //贪心算法
         struct Compare
         {
-            bool operator()(pNode pLeft,pNode pRight)
+            bool operator()(pNode* pLeft,pNode* pRight)
             {
                 return pLeft->_weight < pRight->_weight;
             }
         };
 
         //建小堆
-        Heap<pNode,Compare> hp;
+        Heap<pNode*,Compare> hp;
         for(size_t i = 0;i < size;++i)
         {
             if(array[i] != invalid)
             {
-                hp.push(new pNode(array[i]));
+                hp.Push(new pNode(array[i]));
             }
         }
 
@@ -74,32 +81,21 @@ private:
         while(hp.size() > 1)
         {
             pNode* num1 = hp.Top();
-            hp.pop();
+            hp.Pop();
             pNode* num2 = hp.Top();
-            hp.pop();
+            hp.Pop();
 
-            pNode* tmp = new Node(num1->_weight + num2->_weight);
+            pNode* tmp = new pNode(num1->_weight + num2->_weight);
 
             tmp->_pLeft = num1;
             tmp->_pRight = num2;
             num1->_pParent = tmp;
             num2->_pParent = tmp;
 
-            hp.push(tmp);
+            hp.Push(tmp);
         }
-        _pRoot = hp.top();
+        _pRoot = hp.Top();
     }
-
-    void _Destroy(pNode* pRoot)
-    {
-        if(pRoot == NULL)
-        {
-            return;
-        }
-        Destroy(pRoot->_pLeft);
-        Destroy(pRoot->_pRight);
-        delete pRoot;
-    }
-
+private:
     pNode* _pRoot;
 };
